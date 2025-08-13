@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Unit, Hero } from '@/components/footmen-frenzy/game-engine'
 
 interface GameBoardProps {
@@ -8,21 +8,60 @@ interface GameBoardProps {
   playerHero: Hero | null
   selectedUnits: string[]
   onSelectUnit: (unitId: string, additive: boolean) => void
+  onMoveUnits: (position: { x: number; y: number }) => void
+  onAttackUnit: (targetId: string) => void
 }
 
 export function GameBoard({ 
   units, 
   playerHero, 
   selectedUnits,
-  onSelectUnit
+  onSelectUnit,
+  onMoveUnits,
+  onAttackUnit
 }: GameBoardProps) {
   const [hoveredUnit, setHoveredUnit] = useState<string | null>(null)
+  const boardRef = useRef<HTMLDivElement>(null)
   
   // Get all units including hero
   const allUnits = playerHero ? [...units, playerHero] : units
   
+  // Handle right-click on the board
+  const handleBoardRightClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    
+    if (!boardRef.current) return
+    
+    // Calculate position relative to the board
+    const rect = boardRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 800
+    const y = ((e.clientY - rect.top) / rect.height) * 600
+    
+    // Move selected units to this position
+    onMoveUnits({ x, y })
+  }
+  
+  // Handle right-click on a unit
+  const handleUnitRightClick = (e: React.MouseEvent, unitId: string) => {
+    e.preventDefault()
+    
+    // Check if the unit is an enemy
+    const unit = allUnits.find(u => u.id === unitId)
+    if (unit && unit.team === 'enemy') {
+      // Attack the enemy unit
+      onAttackUnit(unitId)
+    } else {
+      // Move to the unit's position
+      onMoveUnits(unit.position)
+    }
+  }
+  
   return (
-    <div className="flex-1 bg-slate-800/30 rounded-lg border border-slate-700 relative overflow-hidden">
+    <div 
+      ref={boardRef}
+      className="flex-1 bg-slate-800/30 rounded-lg border border-slate-700 relative overflow-hidden"
+      onContextMenu={handleBoardRightClick}
+    >
       <div className="absolute inset-0 bg-grid-slate-700/20 bg-[length:40px_40px]"></div>
       
       {/* Render all units */}
@@ -50,14 +89,15 @@ export function GameBoard({
               boxShadow: isHovered ? '0 0 10px rgba(255,255,255,0.5)' : 'none'
             }}
             onClick={(e) => onSelectUnit(unit.id, e.shiftKey)}
+            onContextMenu={(e) => handleUnitRightClick(e, unit.id)}
             onMouseEnter={() => setHoveredUnit(unit.id)}
             onMouseLeave={() => setHoveredUnit(null)}
           >
             <span className="text-xs font-bold text-white">
               {isHero ? 
-                (unit.heroClass === 'tank' ? 'MK' : 
-                 unit.heroClass === 'ranged' ? 'FL' : 
-                 unit.heroClass === 'utility' ? 'DR' : 'SH') : 
+                ((unit as Hero).heroClass === 'tank' ? 'MK' : 
+                 (unit as Hero).heroClass === 'ranged' ? 'FL' : 
+                 (unit as Hero).heroClass === 'utility' ? 'DR' : 'SH') : 
                 unit.type.charAt(0).toUpperCase()}
             </span>
             {isHero && (
@@ -96,3 +136,7 @@ export function GameBoard({
     </div>
   )
 }
+
+
+
+

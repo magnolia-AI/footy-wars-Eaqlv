@@ -14,6 +14,8 @@ export default function FootmenFrenzyGame() {
     gameState, 
     startGame, 
     selectUnit, 
+    moveSelectedUnits,
+    attackTarget,
     spawnFootman, 
     togglePause, 
     resetGame 
@@ -163,6 +165,8 @@ export default function FootmenFrenzyGame() {
           playerHero={gameState.playerHero}
           selectedUnits={gameState.selectedUnits}
           onSelectUnit={selectUnit}
+          onMoveUnits={moveSelectedUnits}
+          onAttackUnit={attackTarget}
         />
         
         {/* Game Controls & Info */}
@@ -239,6 +243,8 @@ export default function FootmenFrenzyGame() {
     </div>
   )
 }
+
+
 
 
 

@@ -19,6 +19,7 @@ export type Unit = {
   level: number
   target?: string // ID of target unit
   selected: boolean
+  moveTo?: Position // Target position for movement
 }
 
 export type HeroClass = 'tank' | 'ranged' | 'utility' | 'dps'
@@ -212,6 +213,33 @@ export const useGameEngine = () => {
         
         // Update unit positions and behaviors
         const updatedUnits = prev.units.map(unit => {
+          // Handle unit movement
+          if (unit.moveTo) {
+            const dx = unit.moveTo.x - unit.position.x
+            const dy = unit.moveTo.y - unit.position.y
+            const distance = Math.sqrt(dx * dx + dy * dy)
+            
+            // If we're close enough to the target, stop moving
+            if (distance < 5) {
+              return {
+                ...unit,
+                moveTo: undefined
+              }
+            }
+            
+            // Move toward target position
+            const moveX = (dx / distance) * unit.speed * (deltaTime / 1000) * 100
+            const moveY = (dy / distance) * unit.speed * (deltaTime / 1000) * 100
+            
+            return {
+              ...unit,
+              position: {
+                x: unit.position.x + moveX,
+                y: unit.position.y + moveY
+              }
+            }
+          }
+          
           // Simple AI for enemies - move toward player units
           if (unit.team === 'enemy' && prev.playerHero) {
             const dx = prev.playerHero.position.x - unit.position.x
@@ -235,11 +263,32 @@ export const useGameEngine = () => {
           return unit
         })
         
-        // Update hero position if selected
-        const updatedHero = prev.playerHero
-        if (updatedHero && updatedHero.selected) {
-          // In a real implementation, this would be controlled by player input
-          // For now, we'll just keep the hero in place
+        // Update hero position if moving
+        let updatedHero = prev.playerHero
+        if (updatedHero && updatedHero.moveTo) {
+          const dx = updatedHero.moveTo.x - updatedHero.position.x
+          const dy = updatedHero.moveTo.y - updatedHero.position.y
+          const distance = Math.sqrt(dx * dx + dy * dy)
+          
+          // If we're close enough to the target, stop moving
+          if (distance < 5) {
+            updatedHero = {
+              ...updatedHero,
+              moveTo: undefined
+            }
+          } else {
+            // Move toward target position
+            const moveX = (dx / distance) * updatedHero.speed * (deltaTime / 1000) * 100
+            const moveY = (dy / distance) * updatedHero.speed * (deltaTime / 1000) * 100
+            
+            updatedHero = {
+              ...updatedHero,
+              position: {
+                x: updatedHero.position.x + moveX,
+                y: updatedHero.position.y + moveY
+              }
+            }
+          }
         }
         
         return {
@@ -295,6 +344,76 @@ export const useGameEngine = () => {
         units: updatedUnits,
         playerHero: updatedHero,
         selectedUnits: newSelectedUnits
+      }
+    })
+  }
+  
+  // Move selected units to position
+  const moveSelectedUnits = (position: Position) => {
+    setGameState(prev => {
+      // Update units
+      const updatedUnits = prev.units.map(unit => {
+        if (prev.selectedUnits.includes(unit.id)) {
+          return {
+            ...unit,
+            moveTo: position
+          }
+        }
+        return unit
+      })
+      
+      // Update hero if selected
+      let updatedHero = prev.playerHero
+      if (updatedHero && prev.selectedUnits.includes(updatedHero.id)) {
+        updatedHero = {
+          ...updatedHero,
+          moveTo: position
+        }
+      }
+      
+      return {
+        ...prev,
+        units: updatedUnits,
+        playerHero: updatedHero
+      }
+    })
+  }
+  
+  // Attack target unit
+  const attackTarget = (targetId: string) => {
+    setGameState(prev => {
+      // Find the target unit
+      const targetUnit = prev.units.find(u => u.id === targetId) || 
+                        (prev.playerHero?.id === targetId ? prev.playerHero : null)
+      
+      if (!targetUnit) return prev
+      
+      // Update selected units to attack the target
+      const updatedUnits = prev.units.map(unit => {
+        if (prev.selectedUnits.includes(unit.id)) {
+          return {
+            ...unit,
+            target: targetId,
+            moveTo: targetUnit.position // Move toward the target
+          }
+        }
+        return unit
+      })
+      
+      // Update hero if selected
+      let updatedHero = prev.playerHero
+      if (updatedHero && prev.selectedUnits.includes(updatedHero.id)) {
+        updatedHero = {
+          ...updatedHero,
+          target: targetId,
+          moveTo: targetUnit.position // Move toward the target
+        }
+      }
+      
+      return {
+        ...prev,
+        units: updatedUnits,
+        playerHero: updatedHero
       }
     })
   }
@@ -358,9 +477,15 @@ export const useGameEngine = () => {
     gameState,
     startGame,
     selectUnit,
+    moveSelectedUnits,
+    attackTarget,
     spawnFootman,
     togglePause,
     resetGame
   }
 }
+
+
+
+
 
