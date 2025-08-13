@@ -9,11 +9,6 @@ import { useGameEngine } from '@/components/footmen-frenzy/game-engine'
 import { GameBoard } from '@/components/footmen-frenzy/game-board'
 import { UnitInfoPanel } from '@/components/footmen-frenzy/unit-info-panel'
 
-export const metadata = {
-  title: 'Footmen Frenzy | Game Collection',
-  description: 'Play the classic Warcraft III custom game Footmen Frenzy in your browser',
-}
-
 export default function FootmenFrenzyGame() {
   const { 
     gameState, 
@@ -244,5 +239,6 @@ export default function FootmenFrenzyGame() {
     </div>
   )
 }
+
 
 
